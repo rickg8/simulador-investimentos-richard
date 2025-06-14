@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Investimentos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 { color: #4dd599; }
+    label { display: block; margin-top: 15px; }
+    input, button {
+      padding: 10px;
+      margin-top: 5px;
+      width: 100%;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      background-color: #4dd599;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .resultados { margin-top: 30px; }
+    canvas { margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <h1>💸 Simulador de Investimentos  richard</h1>
+
+  <label>Valor investido (R$):</label>
+  <input type="number" id="valor" />
+
+  <label>Anos:</label>
+  <input type="number" id="anos" placeholder="0" />
+
+  <label>Meses:</label>
+  <input type="number" id="meses" placeholder="0" />
+
+  <label>Taxa de juros mensal (%):</label>
+  <input type="number" id="juros" value="1.5" />
+
+  <button onclick="simular()">Simular</button>
+
+  <div class="resultados" id="resumo"></div>
+  <canvas id="grafico" height="100"></canvas>
+
+  <script>
+    function calcularIOF(dias) {
+      return dias >= 30 ? 0 : (30 - dias) * 3;
+    }
+
+    function simular() {
+      let valor = parseFloat(document.getElementById("valor").value);
+      let anos = parseInt(document.getElementById("anos").value) || 0;
+      let meses = parseInt(document.getElementById("meses").value) || 0;
+      let juros = parseFloat(document.getElementById("juros").value);
+
+      let totalMeses = anos * 12 + meses;
+      let totalDias = totalMeses * 30;
+
+      if (!valor || totalMeses < 0 || juros <= 0) {
+        alert("Preencha os campos corretamente.");
+        return;
+      }
+
+      let i = juros / 100;
+      let montante = valor * Math.pow(1 + i, totalMeses);
+      let lucro = montante - valor;
+
+      let ir;
+      if (totalDias <= 180)       ir = 22.5;
+      else if (totalDias <= 360)  ir = 20.0;
+      else if (totalDias <= 720)  ir = 17.5;
+      else                        ir = 15.0;
+
+      let impostoRenda = lucro * (ir / 100);
+      let iofAliquota = calcularIOF(totalDias);
+      let iof = lucro * (iofAliquota / 100);
+      let totalLiquido = montante - impostoRenda - iof;
+
+      document.getElementById("resumo").innerHTML = `
+        <p>📈 <strong>Montante bruto:</strong> R$ ${montante.toFixed(2)}</p>
+        <p>💸 <strong>IR (${ir}%):</strong> R$ ${impostoRenda.toFixed(2)}</p>
+        <p>⚠️ <strong>IOF (${iofAliquota}%):</strong> R$ ${iof.toFixed(2)}</p>
+        <p>✅ <strong>Valor líquido final:</strong> <span style="color:#4dd599">R$ ${totalLiquido.toFixed(2)}</span></p>
+      `;
+
+      // Gráfico de evolução
+      let labels = [];
+      let dados = [];
+      for (let m = 1; m <= totalMeses; m++) {
+        labels.push(`${m} mês${m > 1 ? 'es' : ''}`);
+        dados.push(valor * Math.pow(1 + i, m));
+      }
+
+      const ctx = document.getElementById('grafico').getContext('2d');
+      if (window.graficoAnterior) window.graficoAnterior.destroy();
+      window.graficoAnterior = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Evolução do Investimento',
+            data: dados,
+            borderColor: '#4dd599',
+            backgroundColor: '#4dd59933',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { labels: { color: '#fff' } }
+          },
+          scales: {
+            x: { ticks: { color: '#aaa' } },
+            y: { ticks: { color: '#aaa' } }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
